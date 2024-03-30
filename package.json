@@ -1,0 +1,49 @@
+{
+  "name": "@optimist-video/streamcrafter",
+  "version": "0.0.1",
+  "description": "In-browser compositor and broadcaster",
+  "author": "DDVTECH",
+  "license": "GPL-2.0-or-later",
+  "repository": "https://github.com/DDVTech/streamcrafter",
+  "main": "dist/index.js",
+  "module": "dist/index.modern.js",
+  "source": "src/index.js",
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "build": "rollup -c --bundleConfigAsCjs",
+    "start": "rollup -c -w --bundleConfigAsCjs",
+    "deploy": "gh-pages -d example/build"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "dependencies": {
+    "react-icons": "^4.8.0",
+    "universal-cookie": "^6.1.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-image": "^3.0.3",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "autoprefixer": "^9.0.0",
+    "babel-preset-solid": "^1.8.16",
+    "cross-env": "^7.0.2",
+    "gh-pages": "^2.2.0",
+    "install": "^0.13.0",
+    "node-sass": "^9.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.0.4",
+    "react-dom": "^18.2.0",
+    "react-scripts": "^3.4.1",
+    "rollup": "^4.13.2",
+    "rollup-plugin-img": "^1.1.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2"
+  },
+  "files": [
+    "dist"
+  ]
+}
