@@ -11,15 +11,7 @@ import CompositorWorker from "../workers/compositor.worker";
 //  or a changelog when new features roll out
 import Cookies from "universal-cookie";
 
-const useStreamCrafter = (
-  whipIngest,
-  mistHost,
-  mistPath,
-  streamName,
-  useWebWorker,
-  broadcastWidth,
-  broadcastHeight
-) => {
+const useStreamCrafter = (ingestUri, sceneWidth, sceneHeight) => {
   const [cookies] = useState(
     new Cookies(null, {
       path: "/",
@@ -32,18 +24,13 @@ const useStreamCrafter = (
     isScene: false,
     // Global properties
     properties: {
-      width: broadcastWidth,
-      height: broadcastHeight,
-      useWebWorker: useWebWorker,
-      advancedMode: true,
-      whipIngest: whipIngest,
-      preferWhip: false,
-      mistHost: mistHost,
-      mistPath: mistPath,
-      streamName: streamName,
+      ingestUri: ingestUri,
+      preferWhip: true,
       preferredType: "webrtc",
       preferredVideo: "h264",
       preferredAudio: "opus",
+      defaultWidth: sceneWidth,
+      defaultHeight: sceneHeight,
     },
     id: "broadcast-canvas" + makeid(5),
   });
@@ -63,7 +50,6 @@ const useStreamCrafter = (
     mediaSources,
     ignored
   );
-  // Make web worker available in case the client wants to try it out
   const [workerCompositor] = useState(new WorkerBuilder(CompositorWorker));
 
   // Helper functions to create unique ID's
@@ -83,10 +69,17 @@ const useStreamCrafter = (
   // Functions to actually add specific inputs
 
   async function requestCamera(videoConstraints, audioConstraints) {
+    console.log(audioConstraints);
     return navigator.mediaDevices
       .getUserMedia({
         audio: audioConstraints
-          ? { deviceId: { exact: audioConstraints.deviceId } }
+          ? {
+              deviceId: { exact: audioConstraints.deviceId },
+              autoGainControl: true,
+              echoCancellation: false,
+              noiseSuppression: false,
+              voiceIsolation: false,
+            }
           : false,
         video: videoConstraints
           ? {
@@ -116,10 +109,22 @@ const useStreamCrafter = (
   }
 
   async function requestScreen() {
+    // Create a new CaptureController instance
+    const controller = new CaptureController();
+    controller.setFocusBehavior("no-focus-change");
+
     const stream = await navigator.mediaDevices
       .getDisplayMedia({
-        audio: true,
         video: true,
+        audio: {
+          suppressLocalAudioPlayback: false,
+        },
+        monitorTypeSurfaces: "include",
+        preferCurrentTab: false,
+        selfBrowserSurface: "exclude",
+        systemAudio: "include",
+        surfaceSwitching: "exclude",
+        controller: controller,
       })
       .then(function (stream) {
         return stream;
@@ -133,15 +138,15 @@ const useStreamCrafter = (
 
   // Mutates state when passed props from parent component change
   useEffect(() => {
-    broadcastCanvas.properties.whipIngest = whipIngest;
-    broadcastCanvas.properties.mistHost = mistHost;
-    broadcastCanvas.properties.mistPath = mistPath;
-    broadcastCanvas.properties.streamName = streamName;
+    broadcastCanvas.properties.ingestUri = ingestUri;
     setBroadcastCanvas(broadcastCanvas);
-  }, [whipIngest, mistHost, mistPath, streamName]);
+  }, [ingestUri]);
 
   // Stop all media tracks when this component gets destroyed
   useEffect(() => {
+    workerCompositor.onerror = (err) => {
+      console.log("Worker error: ", err);
+    };
     // Stop all tracks when the component unloads
     return () => {
       workerCompositor.terminate();
@@ -159,17 +164,6 @@ const useStreamCrafter = (
   }, []);
 
   useEffect(() => {
-    if (broadcastCanvas?.properties?.useWebWorker) {
-      workerCompositor.onerror = (err) => {
-        console.log("Worker error: ", err);
-      };
-    }
-  }, [broadcastCanvas?.properties?.useWebWorker]);
-
-  useEffect(() => {
-    if (!broadcastCanvas?.properties?.useWebWorker) {
-      return;
-    }
     workerCompositor.onmessage = (e) => {
       // For each source that renders,
       if (e.data.evt == "getFrames") {
@@ -225,11 +219,7 @@ const useStreamCrafter = (
 
       console.log("DOM received from worker: '" + e.data + "'");
     };
-  }, [
-    mediaSources.length,
-    currentStream,
-    broadcastCanvas?.properties?.useWebWorker,
-  ]);
+  }, [mediaSources.length, currentStream]);
 
   const scenesToCookie = (obj) => {
     let toSave = obj;
@@ -300,29 +290,134 @@ const useStreamCrafter = (
 
   // Create a new editable (canvas) MediaStream and append it to the state
   const addCanvasStream = () => {
-    const newScenes = [
-      ...scenes,
-      {
-        mediaStreamRef: createRef(),
-        mediaDOMRef: createRef(),
-        isScene: true,
-        // Each layer has an input track id, properties
-        layers: [],
-        layerCounter: 0,
-        // Global scene properties
-        properties: {
-          name: "scene " + (scenes.length + 1),
-          autoSort: false,
-          drawClock: false,
-          backgroundColor: "#434c5e",
-          gridColor: "#a3be8c",
-        },
-        id:
-          "scene-" + (+new Date() * Math.random()).toString(36).substring(0, 8),
+    const newScene = {
+      mediaStreamRef: createRef(),
+      mediaDOMRef: createRef(),
+      isScene: true,
+      // Each layer has an input track id, properties
+      layers: [],
+      layerCounter: 0,
+      // Global scene properties
+      properties: {
+        name: "scene " + (scenes.length + 1),
+        autoSort: true,
+        backgroundColor: "#434c5e",
+        gridColor: "#a3be8c",
+        width: sceneWidth,
+        height: sceneHeight,
       },
-    ];
+      id: "scene-" + (+new Date() * Math.random()).toString(36).substring(0, 8),
+    };
+    const newScenes = [...scenes, newScene];
     scenesToCookie(newScenes);
     setScenes(newScenes);
+  };
+
+  // Swaps video sources around in the current scene
+  const arrangeScene = () => {
+    let hasSources = false;
+    for (const input of mediaSources) {
+      if (input.hasVideo) {
+        hasSources = true;
+        break;
+      }
+    }
+    if (!hasSources) {
+      return;
+    }
+    let newScenes = scenes;
+    let thisScene = currentStream;
+    // Make sure we have a scene selected, else we will add one
+    if (!thisScene?.isScene) {
+      return;
+    }
+
+    // First make sure all video sources are present
+    for (const input of mediaSources) {
+      if (!input.hasVideo) {
+        continue;
+      }
+      let hasLayer = false;
+      for (const layer of thisScene.layers) {
+        if (layer.srcId == input.id) {
+          hasLayer = true;
+          break;
+        }
+      }
+      if (!hasLayer) {
+        thisScene.layerCounter++;
+        thisScene.layers.push({
+          id: input.id + makeid(5),
+          srcId: input.id,
+          properties: {
+            x: 0,
+            y: 0,
+            opacity: 100,
+            width: Math.min(thisScene.properties.width, input.properties.width),
+            height: Math.min(
+              thisScene.properties.height,
+              input.properties.height
+            ),
+          },
+          hiddenProperties: {
+            aspectRatio: input.properties.width / input.properties.height,
+            cropStartX: 0,
+            cropStartY: 0,
+            originalWidth: input.properties.width,
+            originalHeight: input.properties.height,
+            cropWidth: input.properties.width,
+            cropHeight: input.properties.height,
+          },
+        });
+      }
+    }
+
+    // Rotate layers around
+    thisScene.layers.push(thisScene.layers.shift());
+    // Arrange layers
+    thisScene.layers[0].properties.width = thisScene.properties.width;
+    thisScene.layers[0].properties.height = thisScene.properties.height;
+    thisScene.layers[0].properties.x = 0;
+    thisScene.layers[0].properties.y = 0;
+    thisScene.layers[0].properties.opacity = 100;
+    let layersPlaced = 0;
+    for (var i = 1; i < thisScene.layers.length; i++) {
+      thisScene.layers[i].properties.height = thisScene.properties.height / 2;
+      thisScene.layers[i].properties.width = Math.min(
+        thisScene.properties.width / 2,
+        thisScene.layers[i].properties.height *
+          (thisScene.layers[i].hiddenProperties.cropWidth /
+            thisScene.layers[i].hiddenProperties.cropHeight)
+      );
+      thisScene.layers[i].properties.opacity = 50;
+      if (layersPlaced == 0) {
+        thisScene.layers[i].properties.x =
+          thisScene.properties.width - thisScene.layers[i].properties.width;
+        thisScene.layers[i].properties.y = 0;
+      } else if (layersPlaced == 1) {
+        thisScene.layers[i].properties.x =
+          thisScene.properties.width - thisScene.layers[i].properties.width;
+        thisScene.layers[i].properties.y =
+          thisScene.properties.height - thisScene.layers[i].properties.height;
+      } else if (layersPlaced == 2) {
+        thisScene.layers[i].properties.x = 0;
+        thisScene.layers[i].properties.y =
+          thisScene.properties.height - thisScene.layers[i].properties.height;
+      } else if (layersPlaced == 4) {
+        thisScene.layers[i].properties.x = 0;
+        thisScene.layers[i].properties.y = 0;
+      }
+      ++layersPlaced;
+      if (layersPlaced >= 4) {
+        break;
+      }
+    }
+
+    mutateCurrentStream(thisScene);
+    setScenes(newScenes);
+    scenesToCookie(newScenes);
+    forceUpdate();
+    console.log("Arranged scene");
   };
 
   // Takes a MediaStream, adds it as a layer to CurrentStream
@@ -336,19 +431,11 @@ const useStreamCrafter = (
       id: source.id + makeid(5),
       srcId: source.id,
       properties: {
-        name: "Layer " + newObj.layerCounter,
         x: 0,
         y: 0,
         opacity: 100,
-        width: Math.min(
-          broadcastCanvas.properties.width,
-          source.properties.width
-        ),
-        height: Math.min(
-          broadcastCanvas.properties.height,
-          source.properties.height
-        ),
-        autoFit: true,
+        width: Math.min(sceneWidth, source.properties.width),
+        height: Math.min(sceneHeight, source.properties.height),
       },
       hiddenProperties: {
         aspectRatio: source.properties.width / source.properties.height,
@@ -471,11 +558,7 @@ const useStreamCrafter = (
       setMediaStreams(newStreams);
       sourcesToCookie(newStreams);
     }
-    if (
-      currentStream &&
-      broadcastCanvas?.properties?.useWebWorker &&
-      mutatedObj.id == currentStream.id
-    ) {
+    if (currentStream && mutatedObj.id == currentStream.id) {
       workerCompositor.postMessage(
         {
           currentStream: {
@@ -496,12 +579,6 @@ const useStreamCrafter = (
   // Overwrites it with the new object
   const mutateBroadcastCanvas = (mutatedObj, withReset) => {
     setBroadcastCanvas(mutatedObj);
-    const newUri =
-      window.location.protocol +
-      "//" +
-      window.location.host +
-      "/view/" +
-      mutatedObj.properties.streamName;
     // Force rerender on nested state update
     forceUpdate();
     // Transfer properties to a new broadcast canvas object
@@ -524,26 +601,24 @@ const useStreamCrafter = (
       properties: broadcastCanvas.properties,
       id: "broadcast-canvas" + makeid(5),
     };
-    if (useWebWorker) {
-      if (currentStream) {
-        workerCompositor.postMessage(
-          {
-            currentStream: {
-              layers: currentStream.layers,
-              isScene: currentStream.isScene,
-              properties: currentStream.properties,
-              id: currentStream.id,
-            },
-            evt: "onCurrentStream",
+    if (currentStream) {
+      workerCompositor.postMessage(
+        {
+          currentStream: {
+            layers: currentStream.layers,
+            isScene: currentStream.isScene,
+            properties: currentStream.properties,
+            id: currentStream.id,
           },
-          []
-        );
-      } else {
-        workerCompositor.postMessage(
-          { currentStream: null, evt: "onCurrentStream" },
-          []
-        );
-      }
+          evt: "onCurrentStream",
+        },
+        []
+      );
+    } else {
+      workerCompositor.postMessage(
+        { currentStream: null, evt: "onCurrentStream" },
+        []
+      );
     }
     setBroadcastCanvas(newCanvasObj);
     // Force rerender on nested state update
@@ -616,6 +691,7 @@ const useStreamCrafter = (
     mutateCurrentStream,
     addMediaStream,
     addCanvasStream,
+    arrangeScene,
     addLayer,
     mutateMediaStream,
     removeStream,

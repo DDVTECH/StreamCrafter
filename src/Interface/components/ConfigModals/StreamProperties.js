@@ -35,34 +35,18 @@ const StreamProperties = (props) => {
         let tooltip = null;
         // Slider to move the image over the canvas horizontally
         if (key == "width") {
-          title = "Width";
-          forceType = "slider";
-          minValue = 10;
-          maxValue = 1920;
-          if (!props.currentStream?.isScene) {
-            return;
-          }
+          return;
         }
         if (key == "height") {
-          title = "Height";
-          forceType = "slider";
-          minValue = 10;
-          maxValue = 1080;
-          if (!props.currentStream?.isScene) {
-            return;
-          }
+          return;
         }
         if (key == "backgroundColor") {
           title = "Background colour";
-          if (!props.currentStream?.isScene) {
-            return;
-          }
+          return;
         }
         if (key == "gridColor") {
           title = "Text and grid colour";
-          if (!props.currentStream?.isScene) {
-            return;
-          }
+          return;
         }
         if (key == "volume") {
           title = "Volume";
@@ -77,7 +61,7 @@ const StreamProperties = (props) => {
         if (key == "autoSort") {
           title = "Automatic layer sorting";
           tooltip =
-            "The largest layers are draw first. Smaller layers are drawn on top.";
+            "Draw large layers in the background and small layers on top.";
           forceType = "boolean";
         }
         if (key == "monitorAudio") {

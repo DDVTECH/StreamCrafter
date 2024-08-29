@@ -6,23 +6,19 @@ Contains a state for which interface elements to show
 For the rest relies on the state and mutator functions from the Core
 
 Passable properties:
-  whipIngest                : initial address to fill in for the WHIP target
-  mistHost                  : initial MistServer hostname to fill in
-  mistPath                  : initial reverse proxy subpath to fill in
-  streamName                : initial stream name to use
-  useWebWorker              : (EXPERIMENTAL!) default to using web workers for compositing, rather than a canvas on the interface
-  broadcastWidth            : target width in pixels to use for scenes and broadcasts
-  broadcastHeight           : target height in pixels to use for scenes and broadcasts
+  ingestUri                 : Full path to a WHIP compatible ingest server
+- sceneWidth (integer)      : Width in pixels of scenes
+- sceneHeight (integer)     : Height in pixels of scenes
 
 */
-import './index.css';
-import React from 'react';
+import "./index.css";
+import React from "react";
 import { useState, useRef, useEffect, useReducer } from "react";
 // Hidden element which
 import MediaPush from "./Core/components/MediaPush/MediaPush";
 // Renders hidden canvas processing element
 import SourceRender from "./Core/components/MediaProcess/SourceRender";
-// Renders hidden compositor, if we're not using a web worker for it
+// Renders hidden compositor, for displaying the preview
 import CompositeRender from "./Core/components/MediaProcess/CompositeRender";
 // Renders preview of available sources to add to the scene
 import SourceList from "./Interface/components/MediaCarousel/SourceList";
@@ -53,6 +49,7 @@ export const StreamCrafter = (props) => {
     setCurrentSteam,
     addMediaStream,
     addCanvasStream,
+    arrangeScene,
     addLayer,
     mutateMediaStream,
     removeStream,
@@ -68,13 +65,9 @@ export const StreamCrafter = (props) => {
     // Cookie accessor
     cookies,
   ] = useStreamCrafter(
-    props.whipIngest,
-    props.mistHost,
-    props.mistPath,
-    props.streamName,
-    props.useWebWorker,
-    props.broadcastWidth,
-    props.broadcastHeight
+    props.ingestUri,
+    props.sceneWidth || 1280,
+    props.sceneHeight || 720
   );
   // Used to force an update when editing nested states, IE when reordering layers
   const [ignored, forceUpdate] = useReducer((x) => x + 1, 0);
@@ -88,11 +81,6 @@ export const StreamCrafter = (props) => {
   const [showStreamProperties, setShowStreamProperties] = useState(false);
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [showAddPush, setShowAddPush] = useState(false);
-  const [showHints, setShowHints] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(
-    !cookies.get("seenTutorial")
-  );
-  const [showConfig, setShowConfig] = useState(false);
   const [showLayerClipping, setShowClipping] = useState(false);
   const [showLayerConfig, setShowLayerConfig] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(null);
@@ -102,6 +90,7 @@ export const StreamCrafter = (props) => {
   const [randomDelay, setDelay] = useState(
     "-" + (600 + Math.floor(Math.random() * 1800)) + "s"
   );
+  const [isErr, setErr] = useState(false);
 
   const handleDrag = (e, obj) => {
     dragElement.current = obj;
@@ -135,10 +124,7 @@ export const StreamCrafter = (props) => {
     setShowClipping(false);
     setShowAddPush(false);
     setShowLayerConfig(false);
-    setShowTutorial(false);
-    setShowHints(false);
     setShowConfigRestore(false);
-    setShowConfig(false);
   };
 
   const toggleShowStreamProperties = (streamObj, e) => {
@@ -153,9 +139,6 @@ export const StreamCrafter = (props) => {
     setShowClipping(false);
     setShowAddPush(false);
     setShowLayerConfig(false);
-    setShowTutorial(false);
-    setShowHints(false);
-    setShowConfig(false);
   };
 
   const toggleShowAddSource = (e) => {
@@ -165,9 +148,6 @@ export const StreamCrafter = (props) => {
     setShowStreamProperties(false);
     setShowAddPush(false);
     setShowLayerConfig(false);
-    setShowTutorial(false);
-    setShowHints(false);
-    setShowConfig(false);
   };
 
   const toggleLayerClipping = (e) => {
@@ -176,45 +156,6 @@ export const StreamCrafter = (props) => {
     setShowAddAsset(false);
     setShowStreamProperties(false);
     setShowAddPush(false);
-    setShowTutorial(false);
-    setShowHints(false);
-    setShowConfig(false);
-  };
-
-  const toggleShowConfig = (e) => {
-    lastClickEvent.current = e;
-    setShowConfig(!showConfig);
-    setShowClipping(false);
-    setShowAddAsset(false);
-    setShowStreamProperties(false);
-    setShowAddPush(false);
-    setShowTutorial(false);
-    setShowHints(false);
-  };
-
-  const closeTutorial = (e) => {
-    lastClickEvent.current = e;
-    setShowTutorial(false);
-    setShowClipping(false);
-    setShowAddAsset(false);
-    setShowStreamProperties(false);
-    setShowAddPush(false);
-    setShowHints(false);
-    setShowLayerConfig(false);
-    setShowConfig(false);
-    cookies.set("seenTutorial", true);
-  };
-
-  const toggleHints = (e) => {
-    lastClickEvent.current = e;
-    setShowHints(!showHints);
-    setShowTutorial(false);
-    setShowClipping(false);
-    setShowAddAsset(false);
-    setShowStreamProperties(false);
-    setShowAddPush(false);
-    setShowLayerConfig(false);
-    setShowConfig(false);
   };
 
   const unselectLayer = () => {
@@ -232,9 +173,6 @@ export const StreamCrafter = (props) => {
     setShowClipping(false);
     setShowAddAsset(false);
     setShowAddPush(false);
-    setShowTutorial(false);
-    setShowHints(false);
-    setShowConfig(false);
   };
 
   const switchLayerPositions = (posFrom, posTo) => {
@@ -341,14 +279,10 @@ export const StreamCrafter = (props) => {
         activePushes={activePushes}
         // Functions to mutate the state
         mutateMediaStream={mutateMediaStream}
-        showTutorial={showTutorial}
-        closeTutorial={closeTutorial}
-        showHints={showHints}
         addCamera={addCamera}
         addScreenShare={addScreenShare}
         showConfigRestore={showConfigRestore}
         // Config restore
-        showConfig={showConfig}
         requestCamera={requestCamera}
         setScenes={setScenes}
         setMediaStreams={setMediaStreams}
@@ -370,14 +304,10 @@ export const StreamCrafter = (props) => {
         setToast={setToast}
       />
       <Header
-        shareUri={props.shareUri}
-        setToast={setToast}
         startBroadcast={startBroadcast}
         removeAllBroadcasts={removeAllBroadcasts}
         broadcastCanvas={broadcastCanvas}
         activePushes={activePushes}
-        toggleShowConfig={toggleShowConfig}
-        toggleHints={toggleHints}
       />
       {/* List of layers in the current scene */}
       <LayerList
@@ -404,6 +334,7 @@ export const StreamCrafter = (props) => {
         mutateMediaStream={mutateMediaStream}
         handleDrop={handleDrop}
         scenes={scenes.length}
+        isErr={isErr}
       />
       {/* Side by side panels - sources/scenes on the left and mixer/actions on the right*/}
       <div style={{ display: "flex", alignItems: "stretch", height: "24em" }}>
@@ -435,8 +366,8 @@ export const StreamCrafter = (props) => {
             toggleShowStreamProperties={toggleShowStreamProperties}
             //
             isPushing={activePushes.length ? true : false}
-            useWebWorker={broadcastCanvas?.properties?.useWebWorker}
             addCanvasStream={addCanvasStream}
+            arrangeScene={arrangeScene}
           />
           {/* Render list of sources */}
           <div
@@ -504,11 +435,8 @@ export const StreamCrafter = (props) => {
       {scenes.map((mediaStream, i) => {
         return (
           <CompositeRender
-            width={broadcastCanvas.properties.width}
-            height={broadcastCanvas.properties.height}
             mediaStream={mediaStream}
             mediaStreams={mediaSources}
-            useWebWorker={broadcastCanvas?.properties?.useWebWorker}
             isCurrentStream={mediaStream == currentStream}
             key={"scene-render-" + mediaStream.id}
           />
@@ -520,8 +448,8 @@ export const StreamCrafter = (props) => {
           broadcastCanvas={broadcastCanvas}
           currentStream={currentStream}
           workerCompositor={workerCompositor}
-          useWebWorker={broadcastCanvas?.properties?.useWebWorker}
           key={broadcastCanvas.id}
+          setErr={setErr}
         />
       ) : null}
       {/* Render a bouncing DVD logo when there's no active stream */}

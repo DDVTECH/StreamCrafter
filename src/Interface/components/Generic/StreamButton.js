@@ -4,7 +4,7 @@
 
 */
 import React from 'react';
-import { IoVideocam, IoVideocamOff } from "react-icons/io5";
+import { IoMegaphone, IoMegaphoneOutline } from "react-icons/io5";
 
 const StartStreaming = (props) => {
   const handleClick = () => {
@@ -19,17 +19,18 @@ const StartStreaming = (props) => {
         textAlign: "center",
         alignContent: "center",
         alignItems: "center",
+        flex: 2
       }}
       onClick={handleClick}
     >
       <h2 className="flex-item nopad noborder" style={{ marginRight: "0.2em" }}>
-        Start
+        Go live
       </h2>
       <div
         className="flex-item nopad noborder"
         style={{ height: "100%", aspectRatio: "1" }}
       >
-        <IoVideocamOff className="maximized" />
+        <IoMegaphoneOutline className="maximized" />
       </div>
     </button>
   );
@@ -48,17 +49,18 @@ const StopStreaming = (props) => {
         textAlign: "center",
         alignContent: "center",
         alignItems: "center",
+        flex: 2
       }}
       onClick={handleClick}
     >
       <h2 className="flex-item nopad noborder" style={{ marginRight: "0.2em" }}>
-        Stop
+        Stop stream
       </h2>
       <div
         className="flex-item noborder"
         style={{ height: "100%", aspectRatio: "1" }}
       >
-        <IoVideocam className={"maximized pulseIcon"} />
+        <IoMegaphone className={"maximized pulseIcon"} />
       </div>
     </button>
   );

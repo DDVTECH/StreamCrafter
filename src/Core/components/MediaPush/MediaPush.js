@@ -15,20 +15,6 @@ const MediaPush = (props) => {
   if (!properties) {
     return;
   }
-  // Determine transport method
-  let protocolWS = "wss://";
-  let protocolHTTP = "https://";
-  let host = properties.mistHost;
-  let path = properties.mistPath;
-  if (
-    properties.mistHost == "localhost" ||
-    properties.mistHost == "127.0.0.1"
-  ) {
-    protocolWS = "ws://";
-    protocolHTTP = "http://";
-    host += ":8080";
-    path = "";
-  }
 
   // WHIP or MistServer signaling?
   if (properties.preferredType == "webrtc") {
@@ -36,7 +22,7 @@ const MediaPush = (props) => {
     if (properties.preferWhip) {
       return (
         <WHIPOutput
-          target={properties.whipIngest}
+          target={properties.ingestUri}
           sourceRef={props.broadcastObj.sourceRef?.current}
         />
       );
@@ -44,34 +30,8 @@ const MediaPush = (props) => {
     // Else use MistServer signaling
     return (
       <WebRTCOutput
-        target={protocolWS + host + path + "/webrtc/" + properties.streamName}
+        target={properties.ingestUri}
         streamBitrate={10000000}
-        sourceRef={props.broadcastObj.sourceRef?.current}
-      />
-    );
-  } else if (properties.preferredType == "webm") {
-    return (
-      <MediaRecorderOutput
-        target={protocolHTTP + host + path + "/webm/" + properties.streamName}
-        mimeType={
-          "video/webm;codecs=" +
-          props.preferredVideo +
-          "," +
-          props.preferredAudio
-        }
-        sourceRef={props.broadcastObj.sourceRef?.current}
-      />
-    );
-  } else if (properties.preferredType == "mp4") {
-    return (
-      <MediaRecorderOutput
-        target={protocolHTTP + host + path + "/mp4/" + properties.streamName}
-        mimeType={
-          "video/mp4;codecs=" +
-          props.preferredVideo +
-          "," +
-          props.preferredAudio
-        }
         sourceRef={props.broadcastObj.sourceRef?.current}
       />
     );

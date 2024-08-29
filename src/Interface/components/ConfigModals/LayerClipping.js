@@ -166,6 +166,19 @@ const LayerClipping = (props) => {
     dragAction.current = coords;
   }, []);
 
+  const touchEnd = (e) => {
+    e.preventDefault();
+    handleMouseUp(e);
+  };
+  const touchMove = (e) => {
+    e.preventDefault();
+    handleMouseMove(e);
+  };
+  const touchStart = (e) => {
+    e.preventDefault();
+    handleMouseDown(e);
+  };
+
   useEffect(() => {
     if (!localVideo.current) {
       return;
@@ -183,6 +196,11 @@ const LayerClipping = (props) => {
     localVideo.current.addEventListener("mousedown", handleMouseDown);
     localVideo.current.addEventListener("mouseup", handleMouseUp);
     localVideo.current.addEventListener("mousemove", handleMouseMove);
+    localVideo.current.addEventListener("touchstart", touchStart);
+    localVideo.current.addEventListener("touchmove", touchMove);
+    localVideo.current.addEventListener("touchend", touchEnd);
+    localVideo.current.addEventListener("touchcancel", handleMouseUp);
+    localVideo.current.addEventListener("touchleave", handleMouseUp);
     requestRef.current = requestAnimationFrame(animate);
     return () => {
       cancelAnimationFrame(requestRef.current);
@@ -192,6 +210,11 @@ const LayerClipping = (props) => {
       localVideo.current.removeEventListener("mousedown", handleMouseDown);
       localVideo.current.removeEventListener("mouseup", handleMouseUp);
       localVideo.current.removeEventListener("mousemove", handleMouseMove);
+      localVideo.current.removeEventListener("touchstart", touchStart);
+      localVideo.current.removeEventListener("touchmove", touchMove);
+      localVideo.current.removeEventListener("touchend", touchEnd);
+      localVideo.current.removeEventListener("touchcancel", handleMouseUp);
+      localVideo.current.removeEventListener("touchleave", handleMouseUp);
     };
   }, [localVideo.current]);
 

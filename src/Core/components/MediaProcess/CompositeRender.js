@@ -1,29 +1,18 @@
 import { useEffect, useRef, useCallback } from "react";
-import React from 'react';
+import React from "react";
 /*
 
 Takes a scene and draws sources to the canvas according to the config
-Disabled when using web workers
 
 */
 
-const CompositeRender = ({
-  mediaStream,
-  mediaStreams,
-  width,
-  height,
-  useWebWorker,
-  isCurrentStream
-}) => {
+const CompositeRender = ({ mediaStream, mediaStreams, isCurrentStream }) => {
   const requestRef = useRef(); //< ref for animation loop
   const localVideo = useRef(); //< local hidden canvas
   const patternCanvas = useRef(); //< ref diagonal lines pattern
   const lastTime = useRef(); //< ref
 
   useEffect(() => {
-    if (!patternCanvas.current) {
-      return;
-    }
     console.log("Drawing pattern to hidden canvas");
     const bgCtx = patternCanvas.current.getContext("2d");
     bgCtx.globalAlpha = 0.3;
@@ -41,7 +30,7 @@ const CompositeRender = ({
       bgCtx.lineTo(0 + i * thickness + thickness / 2, 400);
       bgCtx.stroke();
     }
-  }, [patternCanvas.current]);
+  }, []);
 
   useEffect(() => {
     if (lastTime.current) {
@@ -49,14 +38,6 @@ const CompositeRender = ({
     }
     lastTime.current = Date.now();
   }, [lastTime.current]);
-
-  // Pads strings to a certain length using '0'. Handy for drawing time-related stuff
-  function zPad(v, l) {
-    while ((v + "").length < l) {
-      v = "0" + v;
-    }
-    return v;
-  }
 
   // Draws all layers and other stuff to the canvas
   const animate = useCallback(
@@ -70,11 +51,8 @@ const CompositeRender = ({
       // If not enough time has passed, wait
       let now = Date.now();
       let delta = now - lastTime.current;
-      // Restrict animation loop to 25 FPS, down to 10 FPS if using web workers
-      var fps = 30;
-      if (useWebWorker || !isCurrentStream) {
-        fps = 10;
-      }
+      // Restrict animation loop since it's just a preview
+      var fps = 10;
       var interval = 1000 / fps;
       if (delta < interval) {
         if (requestRef.current !== null) {
@@ -86,6 +64,8 @@ const CompositeRender = ({
 
       const canvasContext = localVideo.current.getContext("2d");
       // Resize the canvas if the dimensions of the scene change
+      const width = mediaStream?.properties?.width || 1280;
+      const height = mediaStream?.properties?.height || 720;
       if (localVideo.current.height != height) {
         localVideo.current.height = height;
       }
@@ -106,7 +86,7 @@ const CompositeRender = ({
         // lookup source track
         let found = false;
         for (const srcStream of mediaStreams) {
-          if (!srcStream.hasVideo){
+          if (!srcStream.hasVideo) {
             continue;
           }
           // Wait for rendered video to appear
@@ -134,19 +114,17 @@ const CompositeRender = ({
                 layerInfo.hiddenProperties.cropStartY
             ),
           };
-          if (layerInfo.properties.autoFit) {
-            const requiredRatio =
-              layerInfo.properties.width / layerInfo.properties.height;
-            const currentRatio = pos.width / pos.height;
-            if (requiredRatio > currentRatio) {
-              const shavings = pos.height - pos.width / requiredRatio;
-              pos.y += shavings / 2;
-              pos.height -= shavings;
-            } else if (requiredRatio < currentRatio) {
-              const shavings = pos.width - pos.height * requiredRatio;
-              pos.x += shavings / 2;
-              pos.width -= shavings;
-            }
+          const requiredRatio =
+            layerInfo.properties.width / layerInfo.properties.height;
+          const currentRatio = pos.width / pos.height;
+          if (requiredRatio > currentRatio) {
+            const shavings = pos.height - pos.width / requiredRatio;
+            pos.y += shavings / 2;
+            pos.height -= shavings;
+          } else if (requiredRatio < currentRatio) {
+            const shavings = pos.width - pos.height * requiredRatio;
+            pos.x += shavings / 2;
+            pos.width -= shavings;
           }
           canvasContext.drawImage(
             srcStream.mediaDOMRef.current,
@@ -211,35 +189,16 @@ const CompositeRender = ({
       }
       canvasContext.globalAlpha = 1;
 
-      // Draw date-time object to the center of the canvas
-      if (mediaStream.properties?.drawClock) {
-        canvasContext.fillStyle =
-          mediaStream.properties?.gridColor || "#000000";
-        canvasContext.textBaseline = "middle";
-        canvasContext.textAlign = "center";
-        canvasContext.font = "bold 32px sans-serif";
-
-        var d = new Date();
-        var dt =
-          d.getFullYear() +
-          "/" +
-          zPad(d.getMonth() + 1, 2) +
-          "/" +
-          zPad(d.getDate(), 2) +
-          " " +
-          zPad(d.getHours(), 2) +
-          ":" +
-          zPad(d.getMinutes(), 2) +
-          ":" +
-          zPad(d.getSeconds(), 2);
-        canvasContext.fillText(dt, width / 2, height / 2);
-      }
-
       if (requestRef.current !== null) {
         requestRef.current = requestAnimationFrame(animate);
       }
     },
-    [useWebWorker, mediaStream.layers, mediaStreams, isCurrentStream]
+    [
+      mediaStream.layers,
+      mediaStreams,
+      isCurrentStream,
+      mediaStream.mediaStreamRef.current,
+    ]
   );
 
   // (re)start animation loop on changes to ensure it reads current info
@@ -249,7 +208,12 @@ const CompositeRender = ({
     }
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
-  }, [mediaStreams?.length, mediaStream?.layers?.length, useWebWorker, isCurrentStream]);
+  }, [
+    mediaStreams?.length,
+    mediaStream?.layers?.length,
+    isCurrentStream,
+    mediaStream.mediaStreamRef.current,
+  ]);
 
   // initialize:
   //  - canvas->MediaStream to mediaStream->mediaStreamRef for broadcasting
@@ -271,6 +235,13 @@ const CompositeRender = ({
       mediaStream.mediaStreamRef.current.getTracks()
     );
   }, []);
+
+  let width = 1280;
+  let height = 720;
+  if (mediaStream?.properties) {
+    width = mediaStream.properties.width;
+    height = mediaStream.properties.height;
+  }
 
   return (
     <div className="flex-parent">

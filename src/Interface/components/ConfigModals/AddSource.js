@@ -21,7 +21,7 @@ const AddSource = (props) => {
   return (
     <ContextMenu
       clickEvent={props.clickEvent}
-      title={"Add Source"}
+      title={"Connect"}
       data={
         <ul>
           <button

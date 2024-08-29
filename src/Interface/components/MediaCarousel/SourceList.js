@@ -5,7 +5,7 @@ Show available streams to broadcast and creates Broadcasts
 */
 import React from 'react';
 import StreamButton from "./StreamButton";
-import { IoAddCircle } from "react-icons/io5";
+import { IoVideocam } from "react-icons/io5";
 
 const SourceList = (props) => {
   let slides = [];
@@ -95,9 +95,9 @@ const SourceList = (props) => {
         }}
       >
         <h4 className="maximized nopad" style={{ flex: 1 }}>
-          Add Source
+          Connect
         </h4>
-        <IoAddCircle className="maximized" style={{ maxHeight: "4em" }}/>
+        <IoVideocam className="maximized" style={{ maxHeight: "4em" }}/>
       </button>
     </div>
   );

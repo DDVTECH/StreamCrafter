@@ -6,9 +6,8 @@ Adds inputs
 import React from 'react';
 import {
   IoOptions,
-  IoRadioButtonOff,
-  IoRadioButtonOn,
-  IoTrash,
+  IoSearch,
+  IoScanCircle,
   IoArrowDown,
   IoArrowUp,
 } from "react-icons/io5";
@@ -24,7 +23,7 @@ const SelectButton = (props) => {
           props.setSelectedLayer(null);
         }}
       >
-        <IoRadioButtonOn className="maximized" />
+        <IoScanCircle className="maximized" />
       </button>
     );
   }
@@ -35,7 +34,7 @@ const SelectButton = (props) => {
         props.setSelectedLayer(props.layerInfo);
       }}
     >
-      <IoRadioButtonOff className="maximized" />
+      <IoSearch className="maximized" />
     </button>
   );
 };

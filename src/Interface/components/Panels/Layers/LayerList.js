@@ -18,8 +18,7 @@ const LayerList = (props) => {
     let title = layer.properties.name || "#" + i;
     for (const mediaStream of props.mediaStreams) {
       if (layer.srcId == mediaStream.id) {
-        title =
-          layer.properties.name + " (" + mediaStream.properties.name + ")";
+        title = mediaStream.properties.name;
         break;
       }
     }
@@ -62,7 +61,7 @@ const LayerList = (props) => {
         )}
       </button>
       <h4 className="nopad" style={{ marginLeft: "1em", marginRight: "1em" }}>
-        Layers
+        In this scene
       </h4>
     </div>
   );

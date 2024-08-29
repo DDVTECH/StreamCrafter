@@ -1,54 +1,15 @@
 /*
 
 Renders a hidden canvas to be used for broadcasting. The active scene or asset gets drawn to it
-If using web workers, said canvas is transferred to the web worker as an OffScreenCanvas
+Canvas is transferred to the web worker as an OffScreenCanvas
 
 */
 import React from 'react';
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const BroadcastRender = (props) => {
   const broadcastVideo = useRef(); //< Ref to DOM element
-  const broadcastContext = useRef(); //< Store context and reuse in the animation loop
-  const broadcastAnimation = useRef(); //< Start/stop the animation loop
   const [isOffScreenCanvas, setOffScreenCanvas] = useState(false); //< If transferred offscreen, the canvas is locked from certain actions
-
-  // Draws the current active stream
-  const animateBroadcast = useCallback(
-    (time) => {
-      let width = props.broadcastCanvas.properties.width;
-      let height = props.broadcastCanvas.properties.height;
-      let color = props.currentStream?.properties?.backgroundColor || "#3b4252";
-
-      // Reset opacity
-      broadcastContext.current.globalAlpha = 1;
-
-      // Clear canvas
-      broadcastContext.current.clearRect(0, 0, width, height);
-      broadcastContext.current.fillStyle = color;
-      broadcastContext.current.fillRect(0, 0, width, height);
-
-      // Update video
-      if (props.currentStream?.mediaDOMRef?.current) {
-        broadcastContext.current.drawImage(
-          props.currentStream.mediaDOMRef.current,
-          0,
-          0,
-          width,
-          height
-        );
-      }
-
-      if (broadcastAnimation.current !== null) {
-        broadcastAnimation.current = requestAnimationFrame(animateBroadcast);
-      }
-    },
-    [
-      props.currentStream?.mediaDOMRef?.current,
-      props.currentStream,
-      props.broadcastCanvas.properties,
-    ]
-  );
 
   // initialize:
   //  - canvas->MediaStream to broadcastCanvas->mediaStreamRef for broadcasting
@@ -83,45 +44,30 @@ const BroadcastRender = (props) => {
     broadcastVideo.current,
   ]);
 
-  // Restart animation loop or transfer canvas to worker
+  // Transfer canvas to worker
   useEffect(() => {
     if (!props.broadcastCanvas) {
       return;
     }
-    if (!broadcastVideo.current) {
+    if (isOffScreenCanvas) {
       return;
     }
-    if (broadcastAnimation.current !== null) {
-      cancelAnimationFrame(broadcastAnimation.current);
-    }
-    if (props.useWebWorker) {
-      if (isOffScreenCanvas) {
-        return;
-      }
-      if (broadcastContext.current) {
-        broadcastContext.current.reset();
-        broadcastContext.current = null;
-      }
-      console.log(
-        "turning broadcast canvas into offscreen one. Passing to compositor..."
-      );
+    console.log(
+      "turning broadcast canvas into offscreen canvas. Passing to compositor..."
+    );
+    try {
       const offscreen = broadcastVideo.current.transferControlToOffscreen();
       props.workerCompositor.postMessage(
         {
           canvas: offscreen,
           evt: "onBroadcastCanvas",
-          height: props.broadcastCanvas.properties.height,
-          width: props.broadcastCanvas.properties.width,
         },
         [offscreen]
       );
       setOffScreenCanvas(true);
-    } else {
-      console.log("animating hidden broadcast canvas", props.currentStream);
-      if (!broadcastContext.current) {
-        broadcastContext.current = broadcastVideo.current.getContext("2d");
-      }
-      broadcastAnimation.current = requestAnimationFrame(animateBroadcast);
+    } catch (e) {
+      console.log(e);
+      props.setErr(true);
     }
   }, [
     props.broadcastCanvas,
@@ -129,6 +75,9 @@ const BroadcastRender = (props) => {
     props.currentStream,
     props.currentStream?.layers,
   ]);
+
+  const height = props.currentStream?.properties?.height || props.broadcastCanvas?.properties?.defaultHeight;
+  const width = props.currentStream?.properties?.width || props.broadcastCanvas?.properties?.defaultWidth;
 
   return (
     <canvas
@@ -138,8 +87,8 @@ const BroadcastRender = (props) => {
       autoPlay={true}
       muted="muted"
       ref={broadcastVideo}
-      height={props.broadcastCanvas.properties.height}
-      width={props.broadcastCanvas.properties.width}
+      height={height}
+      width={width}
     ></canvas>
   );
 };

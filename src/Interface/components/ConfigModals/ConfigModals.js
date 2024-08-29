@@ -13,13 +13,8 @@ import AddSource from "./AddSource";
 
 import ContextMenu from "../Generic/ContextMenu";
 
-import Hints from "../Other/Hints";
-
 import LayerClipping from "./LayerClipping";
 
-import BroadcastConfig from "./BroadcastConfig";
-import CenterModal from "../Generic/CenterModal";
-import Tutorial from "../Other/Tutorial";
 import ConfigRestore from "./ConfigRestore";
 
 const ConfigModals = (props) => {
@@ -71,43 +66,6 @@ const ConfigModals = (props) => {
         addCamera={props.addCamera}
         addScreenShare={props.addScreenShare}
         mediaSources={props.mediaSources}
-      />
-    );
-  }
-
-  if (props.showTutorial) {
-    return (
-      <CenterModal
-        title={"First time help"}
-        data={<Tutorial />}
-        closeModals={props.closeTutorial}
-      />
-    );
-  }
-
-  if (props.showHints) {
-    return (
-      <CenterModal
-        title={"Tips"}
-        data={<Hints />}
-        closeModals={props.closeModals}
-      />
-    );
-  }
-
-  if (props.showConfig) {
-    return (
-      <ContextMenu
-        clickEvent={props.clickEvent}
-        title={"Broadcast Settings"}
-        data={
-          <BroadcastConfig
-            broadcastCanvas={props.broadcastCanvas}
-            mutateBroadcastCanvas={props.mutateBroadcastCanvas}
-            isPushing={props.activePushes.length ? true : false}
-          />
-        }
-        closeModals={props.closeModals}
       />
     );
   }

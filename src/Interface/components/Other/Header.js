@@ -23,56 +23,13 @@ const Header = (props) => {
           StreamCrafter
         </h3>
       </div>
-      <div className="column-container-min" style={{ height: "100%" }}>
-        <button
-          className="column-container action-button noborder"
-          style={{
-            height: "100%",
-            textAlign: "center",
-            alignContent: "center",
-            alignItems: "center",
-          }}
-          onClick={(e) => {
-            navigator.clipboard.writeText(props.shareUri);
-            props.setToast({
-              event: e,
-              message: "Copied to clipboard!",
-            });
-          }}
-        >
-          <h2
-            className="flex-item nopad noborder"
-            style={{ marginRight: "0.2em" }}
-          >
-            Share
-          </h2>
-          <div
-            className="flex-item noborder"
-            style={{ height: "100%", aspectRatio: "1" }}
-          >
-            <IoLink className="maximized" />
-          </div>
-        </button>
+      <div className="column-container-min" style={{ height: "100%", display: "flex", flexDirection:"row" }}>
         <StreamButton
           startBroadcast={props.startBroadcast}
           removeAllBroadcasts={props.removeAllBroadcasts}
           properties={props.broadcastCanvas.properties}
           activePushes={props.activePushes}
         />
-        <button
-          className="action-button flex-item flex-grow noborder"
-          onClick={props.toggleShowConfig}
-          style={{ aspectRatio: "1", height: "100%" }}
-        >
-          <IoSettings className="maximized" />
-        </button>
-        <button
-          className="action-button flex-item flex-grow noborder"
-          onClick={props.toggleHints}
-          style={{ aspectRatio: "1", height: "100%" }}
-        >
-          <IoHelpCircle className="maximized" />
-        </button>
       </div>
     </div>
   );

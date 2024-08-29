@@ -39,6 +39,45 @@ const useWebRTCBroadcaster = (props) => {
     // Set up WebRTC connection
     peerConnRef.current = new RTCPeerConnection();
     peerConnRef.current.addStream(props.sourceRef);
+
+    //set video encoder settings
+    const senders = peerConnRef.current.getSenders();
+    senders.forEach((sender)=>{
+      if (sender.track.kind == "video") {
+        const parameters = sender.getParameters();
+        if (!parameters.encodings) { parameters.encodings = [{}]; }
+
+        parameters.encodings[0].maxBitrate = 20 * 1024 * 1024;
+        parameters.encodings[0].maxFramerate = 60;
+        parameters.encodings[0].adaptivePtime = true; //adaptive packet rate
+
+        sender.setParameters(parameters).then(() => {
+          //encoding parameters changed successfuly
+          /*senders.forEach((sender)=>{
+            if (sender.track.kind == "video") {
+              const parameters = sender.getParameters();
+              console.log("encoding parameters",parameters);
+            }
+          });*/
+        }).catch(e => console.error(e))
+      }else{
+        const parameters = sender.getParameters();
+        if (!parameters.encodings) { parameters.encodings = [{}]; }
+
+        parameters.encodings[0].maxBitrate = 10 * 1024 * 1024;
+
+        sender.setParameters(parameters).then(() => {
+          //encoding parameters changed successfuly
+          /*senders.forEach((sender)=>{
+            if (sender.track.kind == "video") {
+              const parameters = sender.getParameters();
+              console.log("encoding parameters",parameters);
+            }
+          });*/
+        }).catch(e => console.error(e))
+      }
+    });
+
     const onNegotiation = (event) => {
       peerConnRef.current
         .createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false })

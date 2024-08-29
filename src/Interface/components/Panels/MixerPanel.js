@@ -3,7 +3,7 @@
 
 
 */
-import React from 'react';
+import React from "react";
 import JsonFieldEditor from "../JsonFieldEditor/JsonFieldEditor";
 import VolumeIndicator from "./VolumeIndicator";
 import {
@@ -14,8 +14,14 @@ import {
   IoVolumeMute,
 } from "react-icons/io5";
 import { IoTrash } from "react-icons/io5";
+import useIsMobile from "../../hooks/IsMobile";
 
 const MixerPanel = (props) => {
+  // Show different UI panels on mobile vs desktop
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return;
+  }
   return (
     <div
       className="row-container noselect flex-grow"

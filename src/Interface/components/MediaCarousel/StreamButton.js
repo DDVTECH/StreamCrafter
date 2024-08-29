@@ -5,19 +5,19 @@ Adds inputs
 */
 import React from 'react';
 import MediaStreamPreview from "../Generic/MediaStreamPreview";
-import { IoOptions, IoVideocam, IoVideocamOff, IoTrash } from "react-icons/io5";
+import { IoOptions, IoEye, IoEyeOff, IoTrash } from "react-icons/io5";
 
 // Button for maximizing/minimizing this MediaStream
 // Shows magnifying glass when not editable, else a pencil
 const PreviewButton = (props) => {
   let text;
   if (props.isPreview) {
-    text = <IoVideocam className="maximized" />;
+    text = <IoEye className="maximized" />;
   } else {
     if (props.isEditable) {
-      text = <IoVideocamOff className="maximized" />;
+      text = <IoEyeOff className="maximized" />;
     } else {
-      text = <IoVideocamOff className="maximized" />;
+      text = <IoEyeOff className="maximized" />;
     }
   }
   let style = "flex-item flex-grow nopad noborder";
@@ -153,7 +153,7 @@ const StreamButton = (props) => {
           props.handleDrag && props.handleDrag(ev, props.streamObj);
         }}
         onTouchEnd={(ev) => {
-          if (props.isLayer) {
+          if (props.isLayer || !props.handleDrop) {
             return;
           }
           props.handleDrop(ev, "addToCanvas");
@@ -161,7 +161,9 @@ const StreamButton = (props) => {
       >
         <MediaStreamPreview
           stream={props.streamObj.mediaStreamRef.current}
+          source={props.streamObj.mediaDOMRef.current}
           roundedBottoms={true}
+          styleOverride={{width: "100%", objectFit: "contain"}}
         />
       </div>
     </div>

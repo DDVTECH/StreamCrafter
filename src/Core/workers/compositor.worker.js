@@ -38,8 +38,6 @@ export default () => {
         }
         return;
       }
-      broadcastWidth = e.data.width;
-      broadcastHeight = e.data.height;
       broadcastCanvasContext = broadcastCanvas.getContext("2d");
       // Start animation loop if it wasn't active
       if (broadcastAnimationRef) {
@@ -73,6 +71,10 @@ export default () => {
         requiredLayers = 1;
       } else if (currentStream.layers?.length) {
         requiredLayers = currentStream.layers?.length;
+      }
+      if (currentStream) {
+        broadcastWidth = currentStream.properties?.width;
+        broadcastHeight = currentStream.properties?.height;
       }
       // Lazily check for a major change, in which case we reset all VideoFrames
       if (requiredLayers != lastFrames.length) {
@@ -126,7 +128,7 @@ export default () => {
     // If not enough time has passed, wait
     let now = Date.now();
     let delta = now - lastTime.current;
-    // Restrict animation loop to 25 FPS, down to 10 FPS if using web workers
+    // Restrict animation loop to 30 fps
     var fps = 30;
     var interval = 1000 / fps;
     if (delta < interval) {
@@ -142,14 +144,14 @@ export default () => {
 
     const width = broadcastWidth;
     const height = broadcastHeight;
-    const color = currentStream?.properties?.backgroundColor || "#434c5e";
-    // Resize canvas if dimensions change
     if (broadcastCanvas.height != height) {
       broadcastCanvas.height = height;
     }
     if (broadcastCanvas.width != width) {
       broadcastCanvas.width = width;
     }
+
+    const color = currentStream?.properties?.backgroundColor || "#434c5e";
 
     // Reset opacity
     broadcastCanvasContext.globalAlpha = 1;
@@ -224,19 +226,17 @@ export default () => {
                   layerInfo.hiddenProperties.cropStartY
               ),
             };
-            if (layerInfo.properties.autoFit) {
-              const requiredRatio =
-                layerInfo.properties.width / layerInfo.properties.height;
-              const currentRatio = pos.width / pos.height;
-              if (requiredRatio > currentRatio) {
-                const shavings = pos.height - pos.width / requiredRatio;
-                pos.y += shavings / 2;
-                pos.height -= shavings;
-              } else if (requiredRatio < currentRatio) {
-                const shavings = pos.width - pos.height * requiredRatio;
-                pos.x += shavings / 2;
-                pos.width -= shavings;
-              }
+            const requiredRatio =
+              layerInfo.properties.width / layerInfo.properties.height;
+            const currentRatio = pos.width / pos.height;
+            if (requiredRatio > currentRatio) {
+              const shavings = pos.height - pos.width / requiredRatio;
+              pos.y += shavings / 2;
+              pos.height -= shavings;
+            } else if (requiredRatio < currentRatio) {
+              const shavings = pos.width - pos.height * requiredRatio;
+              pos.x += shavings / 2;
+              pos.width -= shavings;
             }
             broadcastCanvasContext.drawImage(
               lastFrames[i],
@@ -258,30 +258,6 @@ export default () => {
       }
     }
     broadcastCanvasContext.globalAlpha = 1;
-
-    // Draw date-time object to the center of the canvas
-    if (currentStream.properties?.drawClock) {
-      broadcastCanvasContext.fillStyle =
-        currentStream.properties?.gridColor || "#000000";
-      broadcastCanvasContext.textBaseline = "middle";
-      broadcastCanvasContext.textAlign = "center";
-      broadcastCanvasContext.font = "bold 32px sans-serif";
-
-      var d = new Date();
-      var dt =
-        d.getFullYear() +
-        "/" +
-        zPad(d.getMonth() + 1, 2) +
-        "/" +
-        zPad(d.getDate(), 2) +
-        " " +
-        zPad(d.getHours(), 2) +
-        ":" +
-        zPad(d.getMinutes(), 2) +
-        ":" +
-        zPad(d.getSeconds(), 2);
-      broadcastCanvasContext.fillText(dt, width / 2, height / 2);
-    }
 
     // Request next frame if the animation loop is still active
     if (broadcastAnimationRef != null) {

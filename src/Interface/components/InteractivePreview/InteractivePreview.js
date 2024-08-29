@@ -243,7 +243,7 @@ const InteractivePreview = (props) => {
     (e) => {
       dragAction.current = e;
       // There's nothing to manipulate
-      if (!props.broadcastCanvas?.properties) {
+      if (!props.currentStream?.properties) {
         return;
       }
       const coords = normalizeMouse(
@@ -421,10 +421,10 @@ const InteractivePreview = (props) => {
             ),
           };
           const xCellSize = parseInt(
-            props.broadcastCanvas?.properties?.width / 8
+            props.currentStream?.properties?.width / 8
           );
           const yCellSize = parseInt(
-            props.broadcastCanvas?.properties?.height / 8
+            props.currentStream?.properties?.height / 8
           );
           const xFactor = Math.round(preview.current.properties.x / xCellSize);
           const yFactor = Math.round(preview.current.properties.y / yCellSize);
@@ -448,10 +448,10 @@ const InteractivePreview = (props) => {
         }
 
         const xCellSize = parseInt(
-          props.broadcastCanvas?.properties?.width / 8
+          props.currentStream?.properties?.width / 8
         );
         const yCellSize = parseInt(
-          props.broadcastCanvas?.properties?.height / 8
+          props.currentStream?.properties?.height / 8
         );
         const xFactor = parseInt(coords.x / xCellSize);
         const yFactor = parseInt(coords.y / yCellSize);
@@ -541,7 +541,7 @@ const InteractivePreview = (props) => {
       ) {
         console.log("update drag move action");
         let newX = Math.min(
-          props.broadcastCanvas.properties.width -
+          props.currentStream.properties.width -
             preview.current.properties.width,
           coords.x - preview.current.properties.width / 2
         );
@@ -550,7 +550,7 @@ const InteractivePreview = (props) => {
         }
         preview.current.properties.x = newX;
         let newY = Math.min(
-          props.broadcastCanvas.properties.height -
+          props.currentStream.properties.height -
             preview.current.properties.height,
           coords.y - preview.current.properties.height / 2
         );
@@ -732,7 +732,7 @@ const InteractivePreview = (props) => {
       props.currentStream?.layers?.length,
       props.selectedLayer,
       cursor,
-      props.broadcastCanvas?.properties,
+      props.currentStream?.properties,
     ]
   );
 
@@ -784,10 +784,10 @@ const InteractivePreview = (props) => {
     const currentCoord = { x: x, y: y };
     const rect = localVideo.current.getBoundingClientRect();
     const xScale =
-      (props.broadcastCanvas?.properties?.width + padding + padding) /
+      (props.currentStream?.properties?.width + padding + padding) /
       rect.width;
     const yScale =
-      (props.broadcastCanvas?.properties?.height + padding + padding) /
+      (props.currentStream?.properties?.height + padding + padding) /
       rect.height;
 
     // Subtract canvas offset
@@ -806,14 +806,14 @@ const InteractivePreview = (props) => {
     if (currentCoord.x < 0) {
       currentCoord.x = 0;
     }
-    if (currentCoord.x >= props.broadcastCanvas?.properties?.width) {
-      currentCoord.x = props.broadcastCanvas?.properties?.width - 1;
+    if (currentCoord.x >= props.currentStream?.properties?.width) {
+      currentCoord.x = props.currentStream?.properties?.width - 1;
     }
     if (currentCoord.y < 0) {
       currentCoord.y = 0;
     }
-    if (currentCoord.y >= props.broadcastCanvas?.properties?.height) {
-      currentCoord.y = props.broadcastCanvas?.properties?.height - 1;
+    if (currentCoord.y >= props.currentStream?.properties?.height) {
+      currentCoord.y = props.currentStream?.properties?.height - 1;
     }
 
     return { x: Math.round(currentCoord.x), y: Math.round(currentCoord.y) };
@@ -915,9 +915,6 @@ const InteractivePreview = (props) => {
   const drawLayer = (layerInfo, onlyEffects, drawAutoCrop) => {
     const canvasContext = localVideo.current.getContext("2d");
     for (const srcStream of props.mediaStreams) {
-      if (!layerInfo.properties.autoFit) {
-        break;
-      }
       if (!srcStream.hasVideo){
         continue;
       }
@@ -1046,18 +1043,16 @@ const InteractivePreview = (props) => {
 
   const animatePreview = useCallback(
     (time) => {
-      let width = 256;
-      let height = 256;
       let color = "#3b4252";
       let sendEmptyVideo = true;
       if (props.currentStream?.properties) {
         color = props.currentStream.properties.backgroundColor;
         sendEmptyVideo = false;
       }
-      if (props.broadcastCanvas?.properties) {
-        width = props.broadcastCanvas.properties.width;
-        height = props.broadcastCanvas.properties.height;
-      }
+
+      const width = props.currentStream?.properties?.width || props.broadcastCanvas?.properties?.defaultWidth;
+      const height = props.currentStream?.properties?.height || props.broadcastCanvas?.properties?.defaultHeight;
+
       const canvasContext = localVideo.current.getContext("2d");
 
       // Reset opacity
@@ -1141,11 +1136,11 @@ const InteractivePreview = (props) => {
       let hint = "";
       // No sources at all
       if (!props.scenes && !props.mediaStreams.length) {
-        hint = "Start crafting by adding a Scene or Media source";
+        hint = "Add a source to publish";
       } else if (props.currentStream?.properties) {
         if (props.currentStream.isScene) {
           if (props.currentStream.layers.length) {
-            hint = "'" + props.currentStream.properties.name +"' video editor";
+            hint = "'" + props.currentStream.properties.name +"' scene editor";
           } else {
             if (!props.mediaStreams.length) {
               hint = "Add a source below to add to the scene";
@@ -1154,15 +1149,15 @@ const InteractivePreview = (props) => {
             }
           }
         } else {
-          hint = "'" + props.currentStream.properties.name +"' video preview";
+          hint = "'" + props.currentStream.properties.name +"' raw input";
         }
       } else {
         // We have a source, but no scene
         if (!props.scenes) {
-          hint = "Add a scene below to start crafting";
+          hint = "Add a scene to overlay sources";
         } else {
           // We have a source and a scene
-          hint = "Click on a video icon below to mark a scene or source as visible";
+          hint = "Mark a scene or source as visible";
         }
       }
       canvasContext.fillStyle = "#e5e9f0";
@@ -1170,7 +1165,14 @@ const InteractivePreview = (props) => {
       canvasContext.font = "bold " + padding / 4 + "px sans-serif";
       canvasContext.textBaseline = "middle";
       canvasContext.textAlign = "center";
-      canvasContext.fillText(hint, padding + width / 2, padding / 2);
+
+      if (props.isErr){
+        hint = "Browser not supported.";
+        canvasContext.font = "bold " + padding + "px sans-serif";
+        canvasContext.fillText(hint, padding + width / 2, padding + height / 2);
+      }else{
+        canvasContext.fillText(hint, padding + width / 2, padding / 2);
+      }
 
       if (localAnimation.current !== null) {
         localAnimation.current = requestAnimationFrame(animatePreview);
@@ -1246,12 +1248,8 @@ const InteractivePreview = (props) => {
     patternCanvas.current,
   ]);
 
-  let width = 0;
-  let height = 0;
-  if (props.broadcastCanvas?.properties) {
-    width = props.broadcastCanvas.properties.width;
-    height = props.broadcastCanvas.properties.height;
-  }
+  const width = props.currentStream?.properties?.width || props.broadcastCanvas?.properties?.defaultWidth;
+  const height = props.currentStream?.properties?.height || props.broadcastCanvas?.properties?.defaultHeight;
 
   let canvasCursor = cursor;
   if (!props.currentStream?.isScene) {

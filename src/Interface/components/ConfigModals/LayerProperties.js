@@ -62,19 +62,21 @@ const LayerProperties = (props) => {
         let forceType = "";
         let title = key;
         if (key == "x") {
+          return;
           forceType = "slider";
           minValue = 0;
           maxValue = Math.max(
             0,
-            props.broadcastCanvas.properties.width - thisProperties.width
+            props.currentStream.properties.width - thisProperties.width
           );
         }
         if (key == "y") {
+          return;
           forceType = "slider";
           minValue = 0;
           maxValue = Math.max(
             0,
-            props.broadcastCanvas.properties.height - thisProperties.height
+            props.currentStream.properties.height - thisProperties.height
           );
         }
         if (key == "opacity") {
@@ -83,58 +85,19 @@ const LayerProperties = (props) => {
           maxValue = 100;
         }
         if (key == "width") {
+          return;
           forceType = "slider";
           minValue = 10;
-          maxValue = Math.max(0, props.broadcastCanvas.properties.width);
+          maxValue = Math.max(0, props.currentStream.properties.width);
         }
         if (key == "height") {
+          return;
           forceType = "slider";
           minValue = 10;
-          maxValue = Math.max(0, props.broadcastCanvas.properties.height);
+          maxValue = Math.max(0, props.currentStream.properties.height);
         }
         if (key == "ratio") {
           forceType = "number";
-        }
-        if (key == "autoFit") {
-          return (
-            <div
-              className="flex-item flex-grow nopad"
-              key={"edit-layer-" + key + "-" + index}
-            >
-              <div
-                className="column-container"
-                style={{
-                  textAlign: "center",
-                  alignContent: "center",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <div className={"container flex-item flex-grow"}>
-                  <div className="flex-parent">
-                    <h4 className="nopad">Layer fit mode</h4>
-                  </div>
-                  <RadioSelector
-                    title={"Layer fit mode"}
-                    values={[
-                      { title: "Center zoom source", value: "zoom" },
-                      { title: "Stretch source", value: "stretch" },
-                    ]}
-                    setValue={(e) => {
-                      const value = e.target.value;
-                      thisProperties.autoFit = value == "zoom";
-                      setNewProperties(thisProperties);
-                    }}
-                    currentValue={
-                      thisProperties.autoFit
-                        ? "zoom"
-                        : "stretch"
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          );
         }
         // if (forceType == "slider"){
         //   autoApply = false;
@@ -186,7 +149,7 @@ const LayerProperties = (props) => {
             className="flex-item flex-grow nopad noborder"
             style={{ alignContent: "center" }}
           >
-            <h4>Crop Layer</h4>
+            <h4>Crop</h4>
           </div>
           <div
             className="flex-item flex-grow nopad noborder activeColor"
@@ -209,7 +172,7 @@ const LayerProperties = (props) => {
             className="flex-item flex-grow nopad noborder"
             style={{ alignContent: "center" }}
           >
-            <h4>Remove Layer</h4>
+            <h4>Drop</h4>
           </div>
           <div
             className="flex-item flex-grow nopad noborder redColor"
