@@ -3,7 +3,7 @@
 Adds inputs
 
 */
-import React from 'react';
+import React from "react";
 import MediaStreamPreview from "../Generic/MediaStreamPreview";
 import { IoOptions, IoEye, IoEyeOff, IoTrash } from "react-icons/io5";
 
@@ -105,6 +105,8 @@ const StreamButton = (props) => {
     }
   }
 
+  const grabAble = !props.streamObj?.isScene && (props.handleDrag || props.handleDrop) || false;
+
   return (
     <div
       className={"container flex-item flex-grow nopad " + border}
@@ -114,9 +116,9 @@ const StreamButton = (props) => {
         maxWidth: "100%",
         height: "100%",
         width: "100%",
-        cursor: !props.streamObj?.isScene ? "grab" : "default",
+        cursor: grabAble ? "grab" : "default",
       }}
-      draggable={!props.streamObj?.isScene || false}
+      draggable={grabAble ? true : false}
       onDragStart={(ev) => {
         props.handleDrag && props.handleDrag(ev, props.streamObj);
       }}
@@ -163,7 +165,7 @@ const StreamButton = (props) => {
           stream={props.streamObj.mediaStreamRef.current}
           source={props.streamObj.mediaDOMRef.current}
           roundedBottoms={true}
-          styleOverride={{width: "100%", objectFit: "contain"}}
+          styleOverride={{ width: "100%", objectFit: "contain", aspectRatio: 16/9 }}
         />
       </div>
     </div>

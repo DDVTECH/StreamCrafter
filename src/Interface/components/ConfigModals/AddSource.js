@@ -4,7 +4,7 @@ Shows an interface for the user to add new media sources
 Returns a MediaStream with a tag as string
 
 */
-import React from 'react';
+import React from "react";
 import useCapture from "../../hooks/BrowserMediaDevices";
 import ContextMenu from "../Generic/ContextMenu";
 import { IoVideocam, IoMic, IoTv } from "react-icons/io5";
@@ -24,31 +24,34 @@ const AddSource = (props) => {
       title={"Connect"}
       data={
         <ul>
-          <button
-            className="column-container action-button noborder"
-            style={{
-              height: "100%",
-              textAlign: "center",
-              alignContent: "center",
-              alignItems: "center",
-            }}
-            onClick={() => {
-              props.addScreenShare();
-            }}
-          >
-            <div
-              className="nopad noborder"
-              style={{ height: "2em", aspectRatio: "1" }}
+          {screen.availHeight > screen.availWidth ? null : (
+            <button
+              className="column-container action-button noborder"
+              style={{
+                height: "100%",
+                textAlign: "center",
+                alignContent: "center",
+                alignItems: "center",
+              }}
+              onClick={() => {
+                props.addScreenShare();
+              }}
             >
-              <IoTv className="maximized" />
-            </div>
-            <h4
-              className="flex-item flex-grow nopad noborder"
-              style={{ marginRight: "0.2em" }}
-            >
-              ScreenShare
-            </h4>
-          </button>
+              <div
+                className="nopad noborder"
+                style={{ height: "2em", aspectRatio: "1" }}
+              >
+                <IoTv className="maximized" />
+              </div>
+              <h4
+                className="flex-item flex-grow nopad noborder"
+                style={{ marginRight: "0.2em" }}
+              >
+                ScreenShare
+              </h4>
+            </button>
+          )}
+
           {deviceList.map((elem) => {
             let disabled = false;
             // Check if already added or not

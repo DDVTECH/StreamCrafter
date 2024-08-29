@@ -20,10 +20,9 @@ import MediaPush from "./Core/components/MediaPush/MediaPush";
 import SourceRender from "./Core/components/MediaProcess/SourceRender";
 // Renders hidden compositor, for displaying the preview
 import CompositeRender from "./Core/components/MediaProcess/CompositeRender";
-// Renders preview of available sources to add to the scene
-import SourceList from "./Interface/components/MediaCarousel/SourceList";
-// Renders list of scenes we can broadcast or edit
-import SceneList from "./Interface/components/MediaCarousel/SceneList";
+// Renders list of scenes, sources and the mixer
+import Controls from "./Interface/components/MediaControls/Controls";
+// Renders list of sources in scene
 import LayerList from "./Interface/components/Panels/Layers/LayerList";
 // Renders broadcast interactive canvas and preview
 import InteractivePreview from "./Interface/components/InteractivePreview/InteractivePreview";
@@ -34,7 +33,6 @@ import ConfigModals from "./Interface/components/ConfigModals/ConfigModals";
 import ToastNotif from "./Interface/components/Generic/ToastNotif";
 import useStreamCrafter from "./Core/hooks/State";
 import Header from "./Interface/components/Other/Header";
-import MixerPanel from "./Interface/components/Panels/MixerPanel";
 
 export const StreamCrafter = (props) => {
   const [
@@ -84,6 +82,7 @@ export const StreamCrafter = (props) => {
   const [showLayerClipping, setShowClipping] = useState(false);
   const [showLayerConfig, setShowLayerConfig] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(null);
+  const [toggleMixer, setToggleMixer] = useState(false);
   // Layer to hightlight in the interactive preview
   const [showConfigRestore, setShowConfigRestore] = useState(false);
   // Make sure the bouncing DVD logo appears in a random spot on every page refresh
@@ -336,77 +335,32 @@ export const StreamCrafter = (props) => {
         scenes={scenes.length}
         isErr={isErr}
       />
-      {/* Side by side panels - sources/scenes on the left and mixer/actions on the right*/}
-      <div style={{ display: "flex", alignItems: "stretch", height: "24em" }}>
-        {/* Sources and scenes */}
-        <div
-          className="row-container noselect darkFg backgroundBorderRight"
-          style={{
-            flex: 2,
-          }}
-        >
-          {/* Render list of scenes */}
-          <div
-            className="flex-parent darkFg backgroundBorderTop backgroundBorderRight"
-            style={{
-              justifyContent: "center",
-              width: "8em",
-            }}
-          >
-            <h4 className="nopad">Scenes</h4>
-          </div>
-          <SceneList
-            scenes={scenes}
-            // Used to show which scene is currently maximized
-            currentStream={currentStream}
-            // Setters for the state
-            removeStream={removeStreamByObj}
-            clearPreview={clearPreview}
-            setCurrentSteam={setNewStream}
-            toggleShowStreamProperties={toggleShowStreamProperties}
-            //
-            isPushing={activePushes.length ? true : false}
-            addCanvasStream={addCanvasStream}
-            arrangeScene={arrangeScene}
-          />
-          {/* Render list of sources */}
-          <div
-            className="flex-parent darkFg backgroundBorderRight"
-            style={{
-              justifyContent: "center",
-              width: "8em",
-            }}
-          >
-            <h4 className="nopad">Sources</h4>
-          </div>
-          <SourceList
-            // Used to show which MediaButton is currently maximized
-            currentStream={currentStream}
-            // All media streams we want to render a preview for
-            mediaStreams={mediaSources}
-            // Setters for the state
-            removeStream={removeStreamByObj}
-            clearPreview={clearPreview}
-            startBroadcast={startBroadcast}
-            setCurrentSteam={setNewStream}
-            toggleShowStreamProperties={toggleShowStreamProperties}
-            // Handle dragging/dropping buttons onto the canvas
-            handleDrag={handleDrag}
-            handleDrop={handleDrop}
-            //
-            isPushing={activePushes.length ? true : false}
-            toggleShowAddSource={toggleShowAddSource}
-          />
-        </div>
-        {/* Audio Mixer */}
-        <MixerPanel
-          mediaSources={mediaSources}
-          currentStream={currentStream}
-          mutateMediaStream={mutateMediaStream}
-          audioState={audioState}
-          removeStream={removeStreamByObj}
-        />
-      </div>
+      {/* Sources, scenes and the mixer */}
+      <Controls
+        // All media streams we want to render a preview for
+        scenes={scenes}
+        mediaStreams={mediaSources}
+        // Used to show which scene is currently maximized
+        currentStream={currentStream}
+        // Setters for the state
+        removeStream={removeStreamByObj}
+        clearPreview={clearPreview}
+        setCurrentSteam={setNewStream}
+        toggleShowStreamProperties={toggleShowStreamProperties}
+        //
+        isPushing={activePushes.length ? true : false}
+        addCanvasStream={addCanvasStream}
+        arrangeScene={arrangeScene}
+        // Handle dragging/dropping buttons onto the canvas
+        handleDrag={handleDrag}
+        handleDrop={handleDrop}
+        toggleShowAddSource={toggleShowAddSource}
+        // For the mixer
+        mutateMediaStream={mutateMediaStream}
+        audioState={audioState}
+        toggleMixer={toggleMixer}
+        setToggleMixer={setToggleMixer}
+      />
       {/* Render active exports or Broadcasts */}
       {activePushes.map((obj, i) => {
         return (

@@ -329,7 +329,31 @@ const useStreamCrafter = (ingestUri, sceneWidth, sceneHeight) => {
     let thisScene = currentStream;
     // Make sure we have a scene selected, else we will add one
     if (!thisScene?.isScene) {
-      return;
+      if (scenes.length) {
+        thisScene = scenes[0];
+      } else {
+        thisScene = {
+          mediaStreamRef: createRef(),
+          mediaDOMRef: createRef(),
+          isScene: true,
+          // Each layer has an input track id, properties
+          layers: [],
+          layerCounter: 0,
+          // Global scene properties
+          properties: {
+            name: "scene " + (scenes.length + 1),
+            autoSort: true,
+            backgroundColor: "#434c5e",
+            gridColor: "#a3be8c",
+            width: sceneWidth,
+            height: sceneHeight,
+          },
+          id:
+            "scene-" +
+            (+new Date() * Math.random()).toString(36).substring(0, 8),
+        };
+        newScenes = [...scenes, thisScene];
+      }
     }
 
     // First make sure all video sources are present
@@ -509,8 +533,13 @@ const useStreamCrafter = (ingestUri, sceneWidth, sceneHeight) => {
         track.applyConstraints(cnstr);
         let setts = track.getSettings();
         console.log("adding source ", setts);
-        newObj.properties.height = setts.height;
-        newObj.properties.width = setts.width;
+        if (screen.availHeight > screen.availWidth){
+          newObj.properties.height = setts.width;
+          newObj.properties.width = setts.height;
+        }else{
+          newObj.properties.height = setts.height;
+          newObj.properties.width = setts.width;
+        }
       }
     } catch (e) {
       console.log("Capa errror (ignoring):", e);

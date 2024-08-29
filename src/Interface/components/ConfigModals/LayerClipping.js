@@ -3,7 +3,7 @@
 
 
 */
-import React from 'react';
+import React from "react";
 import { useEffect, useRef, useCallback } from "react";
 const outlineWidth = 5;
 const padding = 50;
@@ -60,6 +60,18 @@ const LayerClipping = (props) => {
       );
       canvasContext.closePath();
     }
+
+    // Draw hint text
+    canvasContext.fillStyle = "#e5e9f0";
+    canvasContext.globalAlpha = 1.0;
+    canvasContext.font = "bold " + padding / 2 + "px sans-serif";
+    canvasContext.textBaseline = "middle";
+    canvasContext.textAlign = "center";
+    canvasContext.fillText(
+      "Drag a rectangle to crop the image",
+      (props.srcStream.mediaDOMRef.current.videoWidth + padding + padding) / 2,
+      padding / 2
+    );
 
     if (requestRef.current !== null) {
       requestRef.current = requestAnimationFrame(animate);
@@ -136,7 +148,10 @@ const LayerClipping = (props) => {
   };
 
   const handleMouseDown = useCallback((e) => {
-    const coords = normalizeMouse(e.clientX, e.clientY);
+    const coords = normalizeMouse(
+      e.clientX || (e.touches?.length && e.touches[0].clientX),
+      e.clientY || (e.touches?.length && e.touches[0].clientY)
+    );
     dragStart.current = coords;
     console.log("Starting clipping");
   }, []);
@@ -162,7 +177,10 @@ const LayerClipping = (props) => {
   }, []);
 
   const handleMouseMove = useCallback((e) => {
-    const coords = normalizeMouse(e.clientX, e.clientY);
+    const coords = normalizeMouse(
+      e.clientX || (e.touches?.length && e.touches[0].clientX),
+      e.clientY || (e.touches?.length && e.touches[0].clientY)
+    );
     dragAction.current = coords;
   }, []);
 
